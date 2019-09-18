@@ -29,6 +29,38 @@ groups_id = {
     "Softex Fórum 🛸": "558196335770-1556222998@g.us"
 }
 
+queue1 = Queue()
+queue2 = Queue()
+
+queue_dict = {
+    queue1 : "queue1",
+    queue2 : "queue2"
+}
+with open("queue1-listen.csv", "r") as queue1_listen:
+    len_queue1_listen = len(queue1_listen.readlines())
+with open("queue1-write.csv", "r") as queue1_write:
+    len_queue1_write = len(queue1_write.readlines())
+with open("queue2-listen.csv", "r") as queue2_listen:
+    len_queue2_listen = len(queue2_listen.readlines())
+with open("queue2-write.csv", "r") as queue2_write:
+    len_queue2_write = len(queue2_write.readlines())
+
+diff_queue1 = len_queue1_listen - len_queue1_write
+if diff_queue1 > 0:
+    with open("queue1-listen.csv", "r") as queue1_listen:
+        lines = queue1_listen.readlines()
+        for i in range(diff_queue1):
+            msg_type, path, caption = lines[len_queue1_write+i].split("###")
+            queue1.put((msg_type, path, caption))
+diff_queue2 = len_queue2_listen - len_queue2_write
+if diff_queue2 > 0:
+    with open("queue2-listen.csv", "r") as queue2_listen:
+        lines = queue2_listen.readlines()
+        for i in range(diff_queue2):
+            msg_type, path, caption = lines[len_queue2_write+i].split("###")
+            queue1.put((msg_type, path, caption))
+
+
 def get_all_contacts(driver):
     retorno = driver.get_my_contacts()
     contatos = {}
@@ -91,7 +123,10 @@ def listen(driver, queue, group):
                     text = message.content
                     formatted_text = text_formatting(group_number, sender, text)
                     # print(f'[{group_number}] *_{sender}_*: {text}')
-                    queue.put((msg_type, None, formatted_text))
+                    queue.put((msg_type, file_path, formatted_text))
+                queue_file = queue_dict[queue] + "-listen.csv"
+                with open(queue_file, "a+") as queue_file_content:
+                    queue_file_content.write(f"{msg_type}###{file_path}###{formatted_text}\n")
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
@@ -117,6 +152,9 @@ def write(driver, queue, group_id):
             elif msg_type == "sticker":
                 pass
             print(f"Writed: {msg_type}-{path}-{caption}")
+            queue_file = queue_dict[queue] + "-write.csv"
+            with open(queue_file, "a+") as queue_file_content:
+                queue_file_content.write(f"{msg_type}###{path}###{caption}\n")
 
 def send_message(contact, message):
     error_counter = 0
@@ -136,8 +174,7 @@ def send_media(driver, path, chat_id, caption):
         error_counter += 1
         send_media(driver, path, chat_id, caption)
 
-queue1 = Queue()
-queue2 = Queue()
+
 
 # group1 = "Python-Softex 1"
 # group2 = "Python-Softex 2"
