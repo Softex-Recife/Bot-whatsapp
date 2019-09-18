@@ -37,27 +37,35 @@ queue_dict = {
     queue2 : "queue2"
 }
 with open("queue1-listen.csv", "r") as queue1_listen:
-    len_queue1_listen = len(queue1_listen.readlines())
+    text = queue1_listen.read()
+    text = re.sub(r"\n\n*", "\n", text)
+    len_queue1_listen = len(text.split("\n"))
 with open("queue1-write.csv", "r") as queue1_write:
-    len_queue1_write = len(queue1_write.readlines())
+    text = queue1_write.read()
+    text = re.sub(r"\n\n*", "\n", text)
+    len_queue1_write = len(text.split("\n"))
 with open("queue2-listen.csv", "r") as queue2_listen:
-    len_queue2_listen = len(queue2_listen.readlines())
+    text = queue2_listen.read()
+    text = re.sub(r"\n\n*", "\n", text)
+    len_queue2_listen = len(text.split("\n"))
 with open("queue2-write.csv", "r") as queue2_write:
-    len_queue2_write = len(queue2_write.readlines())
+    text = queue2_write.read()
+    text = re.sub(r"\n\n*", "\n", text)
+    len_queue2_write = len(text.split("\n"))
 
 diff_queue1 = len_queue1_listen - len_queue1_write
 if diff_queue1 > 0:
     with open("queue1-listen.csv", "r") as queue1_listen:
         lines = queue1_listen.readlines()
         for i in range(diff_queue1):
-            msg_type, path, caption = lines[len_queue1_write+i].split("###")
+            msg_type, path, caption = lines[len_queue1_write+i-1].split("###")
             queue1.put((msg_type, path, caption))
 diff_queue2 = len_queue2_listen - len_queue2_write
 if diff_queue2 > 0:
     with open("queue2-listen.csv", "r") as queue2_listen:
         lines = queue2_listen.readlines()
         for i in range(diff_queue2):
-            msg_type, path, caption = lines[len_queue2_write+i].split("###")
+            msg_type, path, caption = lines[len_queue2_write+i-1].split("###")
             queue1.put((msg_type, path, caption))
 
 
