@@ -5,6 +5,7 @@ import time
 from queue import Queue
 from threading import Thread
 import re
+import datetime
 
 
 from webwhatsapi import WhatsAPIDriver
@@ -28,6 +29,11 @@ groups_id = {
     "Python-Softex 2": "558196335770-1556566150@g.us",
     "Softex Fórum 🚀": "558198521133-1446582835@g.us",
     "Softex Fórum 🛸": "558196335770-1556222998@g.us"
+}
+
+driver = {
+    "1" : None,
+    "2" : None
 }
 
 queue1 = Queue()
@@ -112,9 +118,14 @@ def save_media(message):
     return file_path
 
 
-def listen(driver, queue, group):
+def listen(driverNumber, queue, group):
     while True:
-        contacts = driver.get_unread()
+        if (reset == True):
+            statusThread["listen"+driverNumber] = False
+            #print(f"thread listen{driverNumber} parada")
+            time.sleep(3)
+            continue
+        contacts = driver[driverNumber].get_unread()
         contact = select_contact(contacts, group)
         if contact:
             for message in contact.messages:
@@ -141,23 +152,32 @@ def listen(driver, queue, group):
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
-def write(driver, queue, group_id):
+def write(driverNumber, queue, group_id):
     while True:
+        #print("write thread live")
+        if (reset == True):
+
+            if(statusThread["listen"+driverNumber] == False):
+                statusThread["write"+driverNumber] = False
+                #print(f"thread write{driverNumber} parada")
+                time.sleep(3)
+                continue
         if not queue.empty():
+            print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
-            contact = driver.get_contact_from_id(group_id)
+            contact = driver[driverNumber].get_contact_from_id(group_id)
             if msg_type == "chat":
                 send_message(contact, caption)
             elif msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:           
                 chat_id = contact.get_chat().id
                 print(f"write in path: {path}")
                 if msg_type in ['document', 'ptt', 'audio']:
-                    send_media(driver, path, chat_id, "")
+                    send_media(driver[driverNumber], path, chat_id, "")
                     time.sleep(1)
                     contact.get_chat().send_message(caption)
                 else:
-                    send_media(driver, path, chat_id, caption)
+                    send_media(driver[driverNumber], path, chat_id, caption)
                 os.remove(path)
                 print(f"Deleted: {path}")
             elif msg_type == "sticker":
@@ -190,30 +210,65 @@ def send_media(driver, path, chat_id, caption):
 # group1 = "Python-Softex 1"
 # group2 = "Python-Softex 2"
 
-#group1 = "grupo2"
-#group2 = "grupo3"
+group1 = "grupo2"
+group2 = "grupo3"
 
-group1 = "Softex Fórum 🚀"
-group2 = "Softex Fórum 🛸"
+#group1 = "Softex Fórum 🚀"
+#group2 = "Softex Fórum 🛸"
 
 
-def init_bot(queue_listen, queue_write, group):
-    driver = WhatsAPIDriver(loadstyles=True)
+def init_bot(number, queue_listen, queue_write, group):
+    #driver = WhatsAPIDriver(loadstyles=True, profile=prof)
     print("Waiting for QR")
-    driver.wait_for_login()
+    #driver.wait_for_login()
     print("Bot started")
     
-    thread_listen = Thread(target=listen, args=(driver, queue_listen, group), name=group+" Listen thread")
+    thread_listen = Thread(target=listen, args=(number, queue_listen, group), name=group+" Listen thread")
     thread_listen.start()
 
-    thread_write = Thread(target=write, args=(driver, queue_write, groups_id[group]), name=group+" Write thread")
+    thread_write = Thread(target=write, args=(number, queue_write, groups_id[group]), name=group+" Write thread")
     thread_write.start()
-    return driver, thread_listen, thread_write
+    return thread_listen, thread_write
 
     
 if __name__ == "__main__":
-    driver1, thread_listen1, thread_write1 = init_bot(queue1, queue2, group1)
-    contacts = get_all_contacts(driver1)
-    driver2, thread_listen2, thread_write2 = init_bot(queue2, queue1, group2)
+    reset = False
+    statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
+    driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
+    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, group1)
+    contacts = get_all_contacts(driver["1"])
+    driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
+    thread_listen2, thread_write2 = init_bot("2", queue2, queue1, group2)
+    
     while True:
-        time.sleep(1)
+        #matar thread de lida
+        #matar thread de escrita
+        #fechar os drivers
+        if(True not in statusThread.values()):
+            print("===============resetar ===================")
+            driver["1"].quit()
+            driver["2"].quit()
+            time.sleep(2)
+            driver["1"] = None
+            driver["2"] = None
+            print("inicindo novos driversW")
+            
+            driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
+            #thread_listen1, thread_write1 = init_bot("1", queue1, queue2, group1)
+            #contacts = get_all_contacts(driver["1"])
+            driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
+            #thread_listen2, thread_write2 = init_bot("2", queue2, queue1, group2)
+            #fechar drivers e instanciar novos
+            time.sleep(5)
+            statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
+            reset = False
+            print("Enviar novas msgs!!!")
+        
+        now = datetime.datetime.now()
+        if(now.hour == 18 and now.minute == 18 and reset == False):
+            time.sleep(60)
+            reset = True
+        #thread_listen1._name
+        #driver1.quit()
+        #time.sleep(10)
+        #driver2.quit()
