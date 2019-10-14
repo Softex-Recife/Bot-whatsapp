@@ -6,35 +6,11 @@ from queue import Queue
 from threading import Thread
 import re
 import datetime
+import config
 
 
 from webwhatsapi import WhatsAPIDriver
 from webwhatsapi.objects.message import MediaMessage, Message
-
-groups = {
-    "Python-Softex 1": 1,
-    "Python-Softex 2": 2,
-    "grupo1": 1,
-    "grupo2": 2,
-    "grupo3": 3,
-    "Softex Fórum 🚀": "🚀",
-    "Softex Fórum 🛸": "🛸"
-}
-
-groups_id = {
-    "grupo1": '558196335770-1557432053@g.us',
-    "grupo2": '558196335770-1557432066@g.us',
-    "grupo3": "558196335770-1559066845@g.us",
-    "Python-Softex 1": "558196335770-1556222998@g.us",
-    "Python-Softex 2": "558196335770-1556566150@g.us",
-    "Softex Fórum 🚀": "558198521133-1446582835@g.us",
-    "Softex Fórum 🛸": "558196335770-1556222998@g.us"
-}
-
-driver = {
-    "1" : None,
-    "2" : None
-}
 
 queue1 = Queue()
 queue2 = Queue()
@@ -125,13 +101,13 @@ def listen(driverNumber, queue, group):
             #print(f"thread listen{driverNumber} parada")
             time.sleep(3)
             continue
-        contacts = driver[driverNumber].get_unread()
+        contacts = config.driver[driverNumber].get_unread()
         contact = select_contact(contacts, group)
         if contact:
             for message in contact.messages:
                 msg_type = message.type
                 sender = message.sender.name
-                group_number = groups[group]
+                group_number =config.groups[group]
                 text = ""
                 file_path = "no path"
                 if msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:
@@ -166,18 +142,18 @@ def write(driverNumber, queue, group_id):
             print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
-            contact = driver[driverNumber].get_contact_from_id(group_id)
+            contact = config.driver[driverNumber].get_contact_from_id(group_id)
             if msg_type == "chat":
                 send_message(contact, caption)
             elif msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:           
                 chat_id = contact.get_chat().id
                 print(f"write in path: {path}")
                 if msg_type in ['document', 'ptt', 'audio']:
-                    send_media(driver[driverNumber], path, chat_id, "")
+                    send_media(config.driver[driverNumber], path, chat_id, "")
                     time.sleep(1)
                     contact.get_chat().send_message(caption)
                 else:
-                    send_media(driver[driverNumber], path, chat_id, caption)
+                    send_media(config.driver[driverNumber], path, chat_id, caption)
                 os.remove(path)
                 print(f"Deleted: {path}")
             elif msg_type == "sticker":
@@ -207,14 +183,7 @@ def send_media(driver, path, chat_id, caption):
 
 
 
-# group1 = "Python-Softex 1"
-# group2 = "Python-Softex 2"
 
-group1 = "grupo2"
-group2 = "grupo3"
-
-#group1 = "Softex Fórum 🚀"
-#group2 = "Softex Fórum 🛸"
 
 
 def init_bot(number, queue_listen, queue_write, group):
@@ -226,7 +195,7 @@ def init_bot(number, queue_listen, queue_write, group):
     thread_listen = Thread(target=listen, args=(number, queue_listen, group), name=group+" Listen thread")
     thread_listen.start()
 
-    thread_write = Thread(target=write, args=(number, queue_write, groups_id[group]), name=group+" Write thread")
+    thread_write = Thread(target=write, args=(number, queue_write, config.groups_id[group]), name=group+" Write thread")
     thread_write.start()
     return thread_listen, thread_write
 
@@ -234,11 +203,11 @@ def init_bot(number, queue_listen, queue_write, group):
 if __name__ == "__main__":
     reset = False
     statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
-    driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
-    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, group1)
-    contacts = get_all_contacts(driver["1"])
-    driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
-    thread_listen2, thread_write2 = init_bot("2", queue2, queue1, group2)
+    config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
+    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, config.group1)
+    contacts = get_all_contacts(config.driver["1"])
+    config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
+    thread_listen2, thread_write2 = init_bot("2", queue2, queue1, config.group2)
     
     while True:
         #matar thread de lida
@@ -246,17 +215,17 @@ if __name__ == "__main__":
         #fechar os drivers
         if(True not in statusThread.values()):
             print("===============resetar ===================")
-            driver["1"].quit()
-            driver["2"].quit()
+            config.driver["1"].quit()
+            config.driver["2"].quit()
             time.sleep(2)
-            driver["1"] = None
-            driver["2"] = None
+            config.driver["1"] = None
+            config.driver["2"] = None
             print("inicindo novos driversW")
             
-            driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
+            config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
             #thread_listen1, thread_write1 = init_bot("1", queue1, queue2, group1)
             #contacts = get_all_contacts(driver["1"])
-            driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
+            config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
             #thread_listen2, thread_write2 = init_bot("2", queue2, queue1, group2)
             #fechar drivers e instanciar novos
             time.sleep(5)
