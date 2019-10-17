@@ -96,9 +96,10 @@ def save_media(message):
 
 def listen(driverNumber, queue, group):
     while True:
-        if (reset == True):
+        if (config.reset == True):
+            print(statusThread)
             statusThread["listen"+driverNumber] = False
-            #print(f"thread listen{driverNumber} parada")
+            print(f"thread listen{driverNumber} parada")
             time.sleep(3)
             continue
         contacts = config.driver[driverNumber].get_unread()
@@ -131,8 +132,7 @@ def listen(driverNumber, queue, group):
 def write(driverNumber, queue, group_id):
     while True:
         #print("write thread live")
-        if (reset == True):
-
+        if (config.reset == True):
             if(statusThread["listen"+driverNumber] == False):
                 statusThread["write"+driverNumber] = False
                 #print(f"thread write{driverNumber} parada")
@@ -142,7 +142,12 @@ def write(driverNumber, queue, group_id):
             print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
-            contact = config.driver[driverNumber].get_contact_from_id(group_id)
+            try:
+                contact = config.driver[driverNumber].get_contact_from_id(group_id)
+            except Exception as identifier:
+                config.reset=True
+                print(" ------------------ Reiniciaaando Thread por não conseguir recuperar conteudo------------------")
+                print(identifier)
             if msg_type == "chat":
                 send_message(contact, caption)
             elif msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:           
@@ -199,9 +204,15 @@ def init_bot(number, queue_listen, queue_write, group):
     thread_write.start()
     return thread_listen, thread_write
 
-    
+def quit_bots(listaBots):
+    for botDriver in listaBots:
+        config.driver[botDriver].quit()
+        time.sleep(2)
+        config.driver[botDriver] = None
+
+#main thread que inicia o Bot e responsável por monitorar as threads e reiniciar o bot.
 if __name__ == "__main__":
-    reset = False
+    config.reset = False
     statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
     config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
     thread_listen1, thread_write1 = init_bot("1", queue1, queue2, config.group1)
@@ -210,34 +221,22 @@ if __name__ == "__main__":
     thread_listen2, thread_write2 = init_bot("2", queue2, queue1, config.group2)
     
     while True:
-        #matar thread de lida
-        #matar thread de escrita
-        #fechar os drivers
+        #Verifica se todas as threads não estão realizando nenhum processamento para iniciar o processo de reinicio do bot
         if(True not in statusThread.values()):
             print("===============resetar ===================")
-            config.driver["1"].quit()
-            config.driver["2"].quit()
-            time.sleep(2)
-            config.driver["1"] = None
-            config.driver["2"] = None
-            print("inicindo novos driversW")
-            
+
+            print("inicindo novos drivers")
+            #função que encerra os bots recebendo um parametro com os numeros dos drivers
+            quit_bots(["1","2"])
             config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/pnfzoq43.default")
-            #thread_listen1, thread_write1 = init_bot("1", queue1, queue2, group1)
             #contacts = get_all_contacts(driver["1"])
             config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile="/home/bernardo/.mozilla/firefox/w9bexwm1.dois")
-            #thread_listen2, thread_write2 = init_bot("2", queue2, queue1, group2)
             #fechar drivers e instanciar novos
             time.sleep(5)
             statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
-            reset = False
-            print("Enviar novas msgs!!!")
+            config.reset = False
         
         now = datetime.datetime.now()
-        if(now.hour == 18 and now.minute == 18 and reset == False):
-            time.sleep(60)
-            reset = True
-        #thread_listen1._name
-        #driver1.quit()
-        #time.sleep(10)
-        #driver2.quit()
+        if(now.hour == 3 and now.minute == 42 and config.reset == False):
+            time.sleep(40)         
+            config.reset = True
