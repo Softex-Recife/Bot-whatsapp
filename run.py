@@ -9,8 +9,8 @@ import datetime
 import config
 
 
-from webwhatsapi import WhatsAPIDriver
-from webwhatsapi.objects.message import MediaMessage, Message
+from WebWhatsapp.webwhatsapi import WhatsAPIDriver
+from WebWhatsapp.webwhatsapi.objects.message import MediaMessage, Message
 
 queue1 = Queue()
 queue2 = Queue()
