@@ -7,6 +7,7 @@ from threading import Thread
 import re
 import datetime
 import config
+import psutil
 
 
 from WebWhatsapp.webwhatsapi import WhatsAPIDriver
@@ -95,6 +96,7 @@ def save_media(message):
 
 
 def listen(driverNumber, queue, group):
+    time.sleep(20)
     while True:
         if (config.reset == True):
             print(statusThread)
@@ -102,8 +104,15 @@ def listen(driverNumber, queue, group):
             print(f"thread listen{driverNumber} parada")
             time.sleep(3)
             continue
-        contacts = config.driver[driverNumber].get_unread()
-        contact = select_contact(contacts, group)
+  
+        try:
+            contacts = config.driver[driverNumber].get_unread()
+            contact = select_contact(contacts, group)
+        except Exception as identifier:
+            print("Erroooo")
+            print(identifier)
+            continue
+
         if contact:
             for message in contact.messages:
                 msg_type = message.type
@@ -130,6 +139,7 @@ def listen(driverNumber, queue, group):
 
 
 def write(driverNumber, queue, group_id):
+    time.sleep(10)
     while True:
         #print("write thread live")
         if (config.reset == True):
@@ -142,6 +152,7 @@ def write(driverNumber, queue, group_id):
             print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
+            
             try:
                 contact = config.driver[driverNumber].get_contact_from_id(group_id)
             except Exception as identifier:
@@ -210,6 +221,16 @@ def quit_bots(listaBots):
         time.sleep(2)
         config.driver[botDriver] = None
 
+def pc_overloaded():
+    cpu_usage = psutil.cpu_percent()
+    mem = dict(psutil.virtual_memory()._asdict())
+    mem_usage = mem['percent']
+
+    if(mem_usage >= 95):
+        return True
+    else:
+        return False
+
 #main thread que inicia o Bot e responsável por monitorar as threads e reiniciar o bot.
 if __name__ == "__main__":
     config.reset = False
@@ -239,4 +260,8 @@ if __name__ == "__main__":
         now = datetime.datetime.now()
         if(now.hour == 3 and now.minute == 42 and config.reset == False):
             time.sleep(40)         
+            config.reset = True
+        
+        if(pc_overloaded() and config.reset == False):
+            print("memoria cheia reiniciar")
             config.reset = True
