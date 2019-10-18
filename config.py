@@ -1,3 +1,6 @@
+global reset
+reset = False
+
 groups = {
     "Python-Softex 1": 1,
     "Python-Softex 2": 2,
