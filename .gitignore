@@ -18,3 +18,7 @@ docs/_build
 venv
 WebWhatsapp
 .vscode
+queue*
+__pycache__
+geckodriver*
+temp
