@@ -109,10 +109,8 @@ def listen(driverNumber, queue, group):
             contacts = config.driver[driverNumber].get_unread()
             contact = select_contact(contacts, group)
         except Exception as identifier:
-            print("Erroooo")
-            print(identifier)
+            print(f"Erro ao carregar os contatos {identifier}")
             continue
-
         if contact:
             for message in contact.messages:
                 msg_type = message.type
@@ -152,7 +150,6 @@ def write(driverNumber, queue, group_id):
             print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
-            
             try:
                 contact = config.driver[driverNumber].get_contact_from_id(group_id)
             except Exception as identifier:
