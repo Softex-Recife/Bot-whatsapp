@@ -8,51 +8,20 @@ import re
 import datetime
 import config
 import psutil
+from offline import write_on_backup_file, check_files, load_offline_messages
 
 
 from WebWhatsapp.webwhatsapi import WhatsAPIDriver
 from WebWhatsapp.webwhatsapi.objects.message import MediaMessage, Message
 
-queue1 = Queue()
-queue2 = Queue()
+check_files()
+
+queue1, queue2 = load_offline_messages()
 
 queue_dict = {
     queue1 : "queue1",
     queue2 : "queue2"
 }
-# with open("queue1-listen.csv", "r") as queue1_listen:
-#     text = queue1_listen.read()
-#     text = re.sub(r"\#\$\#\$\#\n\n*", "\n", text)
-#     len_queue1_listen = len(text.split("\n"))
-# with open("queue1-write.csv", "r") as queue1_write:
-#     text = queue1_write.read()
-#     text = re.sub(r"\#\$\#\$\#\n\n*", "\n", text)
-#     len_queue1_write = len(text.split("\n"))
-# with open("queue2-listen.csv", "r") as queue2_listen:
-#     text = queue2_listen.read()
-#     text = re.sub(r"\#\$\#\$\#\n\n*", "\n", text)
-#     len_queue2_listen = len(text.split("\n"))
-# with open("queue2-write.csv", "r") as queue2_write:
-#     text = queue2_write.read()
-#     text = re.sub(r"\#\$\#\$\#\n\n*", "\n", text)
-#     len_queue2_write = len(text.split("\n"))
-
-# diff_queue1 = len_queue1_listen - len_queue1_write
-# if diff_queue1 > 0:
-#     with open("queue1-listen.csv", "r") as queue1_listen:
-#         lines = queue1_listen.readlines()
-#         for i in range(diff_queue1):
-#             line = lines[len_queue2_write+i-1]
-#             msg_type, path, caption = line[:-5].split("###")
-#             queue1.put((msg_type, path, caption))
-# diff_queue2 = len_queue2_listen - len_queue2_write
-# if diff_queue2 > 0:
-#     with open("queue2-listen.csv", "r") as queue2_listen:
-#         lines = queue2_listen.readlines()
-#         for i in range(diff_queue2):
-#             line = lines[len_queue2_write+i-1]
-#             msg_type, path, caption = line[:-5].split("###")
-#             queue1.put((msg_type, path, caption))
 
 
 def get_all_contacts(driver):
@@ -130,9 +99,7 @@ def listen(driverNumber, queue, group):
                     formatted_text = text_formatting(group_number, sender, text)
                     # print(f'[{group_number}] *_{sender}_*: {text}')
                     queue.put((msg_type, file_path, formatted_text))
-                queue_file = queue_dict[queue] + "-listen.csv"
-                with open(queue_file, "a+") as queue_file_content:
-                    queue_file_content.write(f"{msg_type}###{file_path}###{formatted_text}#$#$#\n")
+                write_on_backup_file(queue_dict[queue], "write", msg_type, file_path, formatted_text)
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
@@ -171,10 +138,8 @@ def write(driverNumber, queue, group_id):
                 print(f"Deleted: {path}")
             elif msg_type == "sticker":
                 pass
+            write_on_backup_file(queue_dict[queue], "write", msg_type, path, caption)
             print(f"Writed: {msg_type}-{path}-{caption}")
-            queue_file = queue_dict[queue] + "-write.csv"
-            with open(queue_file, "a+") as queue_file_content:
-                queue_file_content.write(f"{msg_type}###{path}###{caption}#$#$#\n")
 
 def send_message(contact, message):
     error_counter = 0
