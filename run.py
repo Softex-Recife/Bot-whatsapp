@@ -75,7 +75,7 @@ def listen(driverNumber, queue, group):
             continue
   
         try:
-            contacts = config.driver[driverNumber].get_unread()
+            contacts = config.driver[driverNumber].get_unread(use_unread_count=True)
             contact = select_contact(contacts, group)
         except Exception as identifier:
             print(f"Erro ao carregar os contatos {identifier}")
@@ -85,6 +85,7 @@ def listen(driverNumber, queue, group):
                 msg_type = message.type
                 sender = message.sender.name
                 group_number =config.groups[group]
+                chat_id = message.chat_id
                 text = ""
                 file_path = "no path"
                 if msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:
@@ -100,6 +101,7 @@ def listen(driverNumber, queue, group):
                     # print(f'[{group_number}] *_{sender}_*: {text}')
                     queue.put((msg_type, file_path, formatted_text))
                 write_on_backup_file(queue_dict[queue], "write", msg_type, file_path, formatted_text)
+                config.driver[driverNumber].chat_send_seen(chat_id)
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
