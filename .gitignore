@@ -22,3 +22,5 @@ queue*
 __pycache__
 geckodriver*
 temp
+config.py
+*.sh
