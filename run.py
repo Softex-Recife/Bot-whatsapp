@@ -100,8 +100,8 @@ def listen(driverNumber, queue, group):
                     formatted_text = text_formatting(group_number, sender, text)
                     # print(f'[{group_number}] *_{sender}_*: {text}')
                     queue.put((msg_type, file_path, formatted_text))
-                write_on_backup_file(queue_dict[queue], "write", msg_type, file_path, formatted_text)
                 config.driver[driverNumber].chat_send_seen(chat_id)
+                write_on_backup_file(queue_dict[queue], "write", msg_type, file_path, formatted_text)
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
