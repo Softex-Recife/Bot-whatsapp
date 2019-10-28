@@ -32,5 +32,8 @@ driver = {
 group1 = "grupo2"
 group2 = "grupo3"
 
+profile1 = "/home/bernardo/.mozilla/firefox/pnfzoq43.default"
+profile2 = "/home/bernardo/.mozilla/firefox/w9bexwm1.dois"
+
 #group1 = "Softex Fórum 🚀"
 #group2 = "Softex Fórum 🛸"
