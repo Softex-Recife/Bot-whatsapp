@@ -25,28 +25,50 @@ queue_dict = {
 
 
 def get_all_contacts(driver):
-    retorno = driver.get_my_contacts()
-    contatos = {}
-    for x in retorno:
-        json = x._js_obj
-        contatos[json['id']['user']] = json['formattedName']
-    return contatos
+    """
+    Returns a dictionary, formatted as {'558198543685': 'Name'} of all contacts
 
-def change_contact(text, contacts):
-    mencoes = re.findall(r"\d{12}", text)
-    for mencao in mencoes:
-        if mencao in contacts.keys():
-            contactName = contacts[mencao]
-            text = text.replace(mencao, contactName)
+    Params
+        driver {Driver} : webwhatsapi driver object
+
+    Eg: 
+    """
+    wrapper_contact_list = driver.get_my_contacts()
+    contacts = {}
+    for wrapper_contact in wrapper_contact_list:
+        json = wrapper_contact._js_obj
+        contact_number = json['id']['user']
+        contact_name = json['formattedName']
+        contacts[contact_number] = contact_name
+    return contacts
+
+def replace_number_to_contact(text, contacts):
+    """
+    Changes numbers in text to contact name\n
+
+    Params
+        text     {String}                       : message text
+        contacts {Dict('558198543685': 'Name')} : contacts dictionary (returns of get_all_contacts() method)
+
+    Eg:     'Message example to @558198543685'
+    Return: 'Message example to @Name'
+    """
+    mentions = re.findall(r"\d{12}", text)
+    for mention in mentions:
+        if mention in contacts.keys():
+            contactName = contacts[mention]
+            text = text.replace(mention, contactName)
         else:
-            print(f"Contact not found, number {mencao}")
+            print(f"Contact not found, number {mention}")
     return text
 
-def select_contact(contacts, selected_contact):
-    for contact in contacts:
-        c_name = contact.chat.name
-        if selected_contact == c_name:
-            return contact
+def select_contact(unread_messages, chat_name):
+    """
+    Change to a single filter
+    """
+    for message in unread_messages:
+        if chat_name == message.chat.name:
+            return message
     return False
 
 
@@ -54,7 +76,7 @@ directory_path = os.path.normpath(os.getcwd())
 temp_folder = os.path.normpath(directory_path + os.sep + "temp")
 
 def text_formatting(group_number, sender, text):
-    text = change_contact(text, contacts)
+    text = replace_number_to_contact(text, contacts)
     return f'[{group_number}] *_{sender}_*: {text}'
 
 def save_media(message):
