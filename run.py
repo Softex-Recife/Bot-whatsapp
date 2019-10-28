@@ -97,13 +97,13 @@ def listen(driverNumber, queue, group):
             continue
   
         try:
-            contacts = config.driver[driverNumber].get_unread(use_unread_count=True)
-            contact = select_contact(contacts, group)
+            unread_messages = config.driver[driverNumber].get_unread(use_unread_count=True)
         except Exception as identifier:
             print(f"Erro ao carregar os contatos {identifier}")
             continue
-        if contact:
-            for message in contact.messages:
+        message_group = list(filter(lambda message: message.chat.name == group, unread_messages))[0]
+        if message_group:
+            for message in message_group.messages:
                 msg_type = message.type
                 sender = message.sender.name
                 group_number =config.groups[group]
