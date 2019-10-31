@@ -29,11 +29,11 @@ driver = {
 # group1 = "Python-Softex 1"
 # group2 = "Python-Softex 2"
 
-group1 = "grupo2"
-group2 = "grupo3"
+#group1 = "grupo2"
+#group2 = "grupo3"
 
-profile1 = "/home/bernardo/.mozilla/firefox/pnfzoq43.default"
-profile2 = "/home/bernardo/.mozilla/firefox/w9bexwm1.dois"
+profile1 = "/home/softex/.mozilla/firefox/7359yuu3.1"
+profile2 = "/home/softex/.mozilla/firefox/9mh99na5.2"
 
-#group1 = "Softex Fórum 🚀"
-#group2 = "Softex Fórum 🛸"
+group1 = "Softex Fórum 🚀"
+group2 = "Softex Fórum 🛸"

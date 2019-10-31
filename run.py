@@ -101,8 +101,9 @@ def listen(driverNumber, queue, group):
         except Exception as identifier:
             print(f"Erro ao carregar os contatos {identifier}")
             continue
-        message_group = list(filter(lambda message: message.chat.name == group, unread_messages))[0]
+        message_group = list(filter(lambda message: message.chat.name == group, unread_messages))
         if message_group:
+            message_group = message_group[0]
             for message in message_group.messages:
                 msg_type = message.type
                 sender = message.sender.name
@@ -219,12 +220,13 @@ def pc_overloaded():
 
 #main thread que inicia o Bot e responsável por monitorar as threads e reiniciar o bot.
 if __name__ == "__main__":
-    config.reset = False
-    statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
     config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
-    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, config.group1)
     contacts = get_all_contacts(config.driver["1"])
     config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
+    time.sleep(20)
+    config.reset = False
+    statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
+    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, config.group1)
     thread_listen2, thread_write2 = init_bot("2", queue2, queue1, config.group2)
     
     while True:
@@ -239,7 +241,7 @@ if __name__ == "__main__":
             #contacts = get_all_contacts(driver["1"])
             config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
             #fechar drivers e instanciar novos
-            time.sleep(5)
+            time.sleep(20)
             statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
             config.reset = False
         
