@@ -87,22 +87,23 @@ def save_media(message):
 
 
 def listen(driverNumber, queue, group):
-    time.sleep(20)
+    #time.sleep(40)
     while True:
         if (config.reset == True):
-            print(statusThread)
             statusThread["listen"+driverNumber] = False
-            print(f"thread listen{driverNumber} parada")
-            time.sleep(3)
-            continue
+            while(config.reset==True):
+                time.sleep(1)
+            statusThread["listen"+driverNumber] = True
   
         try:
             unread_messages = config.driver[driverNumber].get_unread(use_unread_count=True)
-        except Exception as identifier:
-            print(f"Erro ao carregar os contatos {identifier}")
+        except TypeError as identifier:
+            print()
+            print(f"Erro ao carregar as mensagens não lida {identifier}, sem internet")
             continue
-        message_group = list(filter(lambda message: message.chat.name == group, unread_messages))[0]
+        message_group = list(filter(lambda message: message.chat.name == group, unread_messages))
         if message_group:
+            message_group = message_group[0]
             for message in message_group.messages:
                 msg_type = message.type
                 sender = message.sender.name
@@ -114,12 +115,15 @@ def listen(driverNumber, queue, group):
                     if msg_type in ['image' ,'video']:
                         text = message.caption
                     file_path = save_media(message)
+                    print("SAAALVEEEI")
                     formatted_text = text_formatting(group_number, sender, text)
                     queue.put((msg_type, file_path, formatted_text))
                     # print(msg_type)
                 elif msg_type == "chat":
                     text = message.content
                     formatted_text = text_formatting(group_number, sender, text)
+                    if(text == "reset"):
+                        config.reset = True
                     # print(f'[{group_number}] *_{sender}_*: {text}')
                     queue.put((msg_type, file_path, formatted_text))
                 config.driver[driverNumber].chat_send_seen(chat_id)
@@ -128,15 +132,16 @@ def listen(driverNumber, queue, group):
 
 
 def write(driverNumber, queue, group_id):
-    time.sleep(10)
+    #time.sleep(40)
     while True:
         #print("write thread live")
         if (config.reset == True):
-            if(statusThread["listen"+driverNumber] == False):
-                statusThread["write"+driverNumber] = False
+            statusThread["write"+driverNumber] = False
+            while(config.reset==True):
+                time.sleep(1)
+            statusThread["write"+driverNumber] = True
                 #print(f"thread write{driverNumber} parada")
-                time.sleep(3)
-                continue
+            continue
         if not queue.empty():
             print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
@@ -153,11 +158,11 @@ def write(driverNumber, queue, group_id):
                 chat_id = contact.get_chat().id
                 print(f"write in path: {path}")
                 if msg_type in ['document', 'ptt', 'audio']:
-                    send_media(config.driver[driverNumber], path, chat_id, "")
+                    send_media(config.driver[driverNumber], path, chat_id, "", contact)
                     time.sleep(1)
                     contact.get_chat().send_message(caption)
                 else:
-                    send_media(config.driver[driverNumber], path, chat_id, caption)
+                    send_media(config.driver[driverNumber], path, chat_id, caption, contact)
                 os.remove(path)
                 print(f"Deleted: {path}")
             elif msg_type == "sticker":
@@ -172,23 +177,27 @@ def send_message(contact, message):
     except Exception as e:
         print(f"[{error_counter}] Error trying to send message - {e}")
         error_counter += 1
+        time.sleep(5)
         send_message(contact, message)
 
-def send_media(driver, path, chat_id, caption):
+def send_media(driver, path, chat_id, caption, contact):
     error_counter = 0
     try:
         driver.send_media(path, chat_id, caption)
     except Exception as e:
-        print(f"[{error_counter}] Error trying to send media - {e}")
+        print(f"[{error_counter}] Error trying to send media -")
+        with open("test.txt", "a") as myfile:
+            myfile.write(str(e) + "\n")
         error_counter += 1
-        send_media(driver, path, chat_id, caption)
+        send_message(contact, f"Não foi possível enviar a media do {chat_id}" )
+        send_media(driver, path, chat_id, caption,contact)
 
 
 
 
 
 
-def init_bot(number, queue_listen, queue_write, group):
+def init_threads(number, queue_listen, queue_write, group):
     #driver = WhatsAPIDriver(loadstyles=True, profile=prof)
     print("Waiting for QR")
     #driver.wait_for_login()
@@ -219,16 +228,16 @@ def pc_overloaded():
 
 #main thread que inicia o Bot e responsável por monitorar as threads e reiniciar o bot.
 if __name__ == "__main__":
+    config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
+    config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
+    time.sleep(20)
     config.reset = False
     statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
-    config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
-    thread_listen1, thread_write1 = init_bot("1", queue1, queue2, config.group1)
     contacts = get_all_contacts(config.driver["1"])
-    config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
-    thread_listen2, thread_write2 = init_bot("2", queue2, queue1, config.group2)
+    thread_listen1, thread_write1 = init_threads("1", queue1, queue2, config.group1)
+    thread_listen2, thread_write2 = init_threads("2", queue2, queue1, config.group2)
     
     while True:
-        #Verifica se todas as threads não estão realizando nenhum processamento para iniciar o processo de reinicio do bot
         if(True not in statusThread.values()):
             print("===============resetar ===================")
 
@@ -236,15 +245,16 @@ if __name__ == "__main__":
             #função que encerra os bots recebendo um parametro com os numeros dos drivers
             quit_bots(["1","2"])
             config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
-            #contacts = get_all_contacts(driver["1"])
             config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
-            #fechar drivers e instanciar novos
-            time.sleep(5)
-            statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
+            time.sleep(20)
+            #statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
             config.reset = False
+            
+            #contacts = get_all_contacts(driver["1"])
+            #fechar drivers e instanciar novos
         
         now = datetime.datetime.now()
-        if(now.hour == 3 and now.minute == 42 and config.reset == False):
+        if(now.hour == 16 and now.minute == 45 and config.reset == False):
             time.sleep(40)         
             config.reset = True
         
