@@ -143,7 +143,6 @@ def write(driverNumber, queue, group_id):
                 #print(f"thread write{driverNumber} parada")
             continue
         if not queue.empty():
-            print('fila' + driverNumber)
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
             try:
@@ -192,23 +191,24 @@ def send_media(driver, path, chat_id, caption, contact):
         send_message(contact, f"Não foi possível enviar a media do {chat_id}" )
         send_media(driver, path, chat_id, caption,contact)
 
-
-
-
-
-
 def init_threads(number, queue_listen, queue_write, group):
     #driver = WhatsAPIDriver(loadstyles=True, profile=prof)
     print("Waiting for QR")
-    #driver.wait_for_login()
     print("Bot started")
-    
     thread_listen = Thread(target=listen, args=(number, queue_listen, group), name=group+" Listen thread")
     thread_listen.start()
-
     thread_write = Thread(target=write, args=(number, queue_write, config.groups_id[group]), name=group+" Write thread")
     thread_write.start()
     return thread_listen, thread_write
+
+def init_bots():
+    for bot in ["1","2"]:
+        config.driver[bot] = WhatsAPIDriver(loadstyles=True, profile=config.profile[bot])
+        print(f"Waiting for login Bot {bot}")
+        config.driver[bot].wait_for_login()
+        print(f"Bot {bot} iniciado")
+    time.sleep(20)
+    config.reset = False
 
 def quit_bots(listaBots):
     for botDriver in listaBots:
@@ -217,44 +217,27 @@ def quit_bots(listaBots):
         config.driver[botDriver] = None
 
 def pc_overloaded():
-    cpu_usage = psutil.cpu_percent()
     mem = dict(psutil.virtual_memory()._asdict())
     mem_usage = mem['percent']
-
     if(mem_usage >= 95):
         return True
     else:
         return False
 
-#main thread que inicia o Bot e responsável por monitorar as threads e reiniciar o bot.
 if __name__ == "__main__":
-    config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
-    config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
-    time.sleep(20)
-    config.reset = False
-    statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
+    init_bots()
     contacts = get_all_contacts(config.driver["1"])
+    statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
     thread_listen1, thread_write1 = init_threads("1", queue1, queue2, config.group1)
     thread_listen2, thread_write2 = init_threads("2", queue2, queue1, config.group2)
-    
     while True:
         if(True not in statusThread.values()):
             print("===============resetar ===================")
-
-            print("inicindo novos drivers")
-            #função que encerra os bots recebendo um parametro com os numeros dos drivers
             quit_bots(["1","2"])
-            config.driver["1"] = WhatsAPIDriver(loadstyles=True, profile=config.profile1)
-            config.driver["2"] = WhatsAPIDriver(loadstyles=True, profile=config.profile2)
-            time.sleep(20)
-            #statusThread = {"listen1":True, "listen2":True, "write1":True, "write2":True}
-            config.reset = False
+            init_bots()
             
-            #contacts = get_all_contacts(driver["1"])
-            #fechar drivers e instanciar novos
-        
         now = datetime.datetime.now()
-        if(now.hour == 16 and now.minute == 45 and config.reset == False):
+        if(now.hour == 17 and now.minute == 23 and config.reset == False):
             time.sleep(40)         
             config.reset = True
         
