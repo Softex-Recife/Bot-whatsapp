@@ -93,13 +93,14 @@ def listen(driverNumber, queue, group):
             statusThread["listen"+driverNumber] = False
             while(config.reset==True):
                 time.sleep(1)
+            print(f"listen {driverNumber} voltando a funcionar")
             statusThread["listen"+driverNumber] = True
   
         try:
             unread_messages = config.driver[driverNumber].get_unread(use_unread_count=True)
         except TypeError as identifier:
             print()
-            print(f"Erro ao carregar as mensagens não lida {identifier}, sem internet")
+            print(f"error to get unread messages {identifier}")
             continue
         message_group = list(filter(lambda message: message.chat.name == group, unread_messages))
         if message_group:
@@ -126,8 +127,15 @@ def listen(driverNumber, queue, group):
                         config.reset = True
                     # print(f'[{group_number}] *_{sender}_*: {text}')
                     queue.put((msg_type, file_path, formatted_text))
-                config.driver[driverNumber].chat_send_seen(chat_id)
-                write_on_backup_file(queue_dict[queue], "write", msg_type, file_path, formatted_text)
+                else:
+                    continue
+                try:
+                    config.driver[driverNumber].chat_send_seen(chat_id)
+                    pass
+                except Exception as e:
+                    print(f"error in send_seen function: {e}")
+                    pass
+                write_on_backup_file(queue_dict[queue], "listen", msg_type, file_path, formatted_text)
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
 
@@ -140,16 +148,15 @@ def write(driverNumber, queue, group_id):
             while(config.reset==True):
                 time.sleep(1)
             statusThread["write"+driverNumber] = True
-                #print(f"thread write{driverNumber} parada")
-            continue
+            print(f"Write {driverNumber} voltando a funcionar")
         if not queue.empty():
             msg_type, path, caption = queue.get()
             print(f"Removed from queue: {msg_type}-{path}-{caption}")
             try:
                 contact = config.driver[driverNumber].get_contact_from_id(group_id)
             except Exception as identifier:
-                config.reset=True
-                print(" ------------------ Reiniciaaando Thread por não conseguir recuperar conteudo------------------")
+                #config.reset=True
+                print(f"Error in function get_contact_from_id")
                 print(identifier)
             if msg_type == "chat":
                 send_message(contact, caption)
@@ -177,7 +184,7 @@ def send_message(contact, message):
         print(f"[{error_counter}] Error trying to send message - {e}")
         error_counter += 1
         time.sleep(5)
-        send_message(contact, message)
+        #send_message(contact, message)
 
 def send_media(driver, path, chat_id, caption, contact):
     error_counter = 0
@@ -188,8 +195,8 @@ def send_media(driver, path, chat_id, caption, contact):
         with open("test.txt", "a") as myfile:
             myfile.write(str(e) + "\n")
         error_counter += 1
-        send_message(contact, f"Não foi possível enviar a media do {chat_id}" )
-        send_media(driver, path, chat_id, caption,contact)
+        send_message(contact, f"Não foi possível enviar a media do {contact.get_safe_name()}" )
+        #send_media(driver, path, chat_id, caption,contact)
 
 def init_threads(number, queue_listen, queue_write, group):
     #driver = WhatsAPIDriver(loadstyles=True, profile=prof)
@@ -209,6 +216,7 @@ def init_bots():
         print(f"Bot {bot} iniciado")
     time.sleep(20)
     config.reset = False
+    time.sleep(3)
 
 def quit_bots(listaBots):
     for botDriver in listaBots:
@@ -235,9 +243,10 @@ if __name__ == "__main__":
             print("===============resetar ===================")
             quit_bots(["1","2"])
             init_bots()
+            print(statusThread)
             
         now = datetime.datetime.now()
-        if(now.hour == 17 and now.minute == 23 and config.reset == False):
+        if(now.hour == 17 and now.minute == 39 and config.reset == False):
             time.sleep(40)         
             config.reset = True
         
