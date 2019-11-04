@@ -29,15 +29,13 @@ driver = {
 # group1 = "Python-Softex 1"
 # group2 = "Python-Softex 2"
 
-group1 = "grupo2"
-group2 = "grupo3"
+#group1 = "grupo2"
+#group2 = "grupo3"
 
 #prod
-#profile1 = "/home/softex/.mozilla/firefox/pnfzoq43.default"
-#profile2 = "/home/softex/.mozilla/firefox/9mh99na5.2"
-
+profile = {"1" : "/home/softex/.mozilla/firefox/pnfzoq43.default", "2" : "/home/softex/.mozilla/firefox/9mh99na5.2" }
 #PC-Delando
-profile = {"1" : "/home/bernardo/.mozilla/firefox/pnfzoq43.default", "2" : "/home/bernardo/.mozilla/firefox/w9bexwm1.dois" }
+#profile = {"1" : "/home/bernardo/.mozilla/firefox/pnfzoq43.default", "2" : "/home/bernardo/.mozilla/firefox/w9bexwm1.dois" }
 
-#group1 = "Softex Fórum 🚀"
-#group2 = "Softex Fórum 🛸"
+group1 = "Softex Fórum 🚀"
+group2 = "Softex Fórum 🛸"
