@@ -32,8 +32,10 @@ driver = {
 #group1 = "grupo2"
 #group2 = "grupo3"
 
-profile1 = "/home/softex/.mozilla/firefox/7359yuu3.1"
-profile2 = "/home/softex/.mozilla/firefox/9mh99na5.2"
+#prod
+profile = {"1" : "/home/softex/.mozilla/firefox/pnfzoq43.default", "2" : "/home/softex/.mozilla/firefox/9mh99na5.2" }
+#PC-Delando
+#profile = {"1" : "/home/bernardo/.mozilla/firefox/pnfzoq43.default", "2" : "/home/bernardo/.mozilla/firefox/w9bexwm1.dois" }
 
 group1 = "Softex Fórum 🚀"
 group2 = "Softex Fórum 🛸"
