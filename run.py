@@ -9,6 +9,7 @@ import datetime
 import config
 import psutil
 from offline import write_on_backup_file, check_files, load_offline_messages
+import internet
 
 
 from WebWhatsapp.webwhatsapi import WhatsAPIDriver
@@ -85,6 +86,15 @@ def save_media(message):
     message.save_media(temp_folder, force_download=True)
     return file_path
 
+def is_time_out_error(error):
+    error = str(error).lower()
+    if("time" in error and "out" in error):
+        return True
+    else:
+        return False
+    now = datetime.datetime.now().strftime("%H:%M:%S")    
+    with open("error_logs.txt", "a") as myfile:
+            myfile.write(f"[{now}] -- {str(error)}\n")
 
 def listen(driverNumber, queue, group):
     #time.sleep(40)
@@ -131,10 +141,13 @@ def listen(driverNumber, queue, group):
                     continue
                 try:
                     config.driver[driverNumber].chat_send_seen(chat_id)
-                    pass
                 except Exception as e:
-                    print(f"error in send_seen function: {e}")
-                    pass
+                    if (is_time_out_error(e)):
+                        print(f"error in send_seen function because time out: {e}")
+                        internet.wait_until_connection_becames_available()
+                    else:
+                        print(f"unknown error {e}")
+                        pass
                 write_on_backup_file(queue_dict[queue], "listen", msg_type, file_path, formatted_text)
                 print(f"Listened: {msg_type}-{file_path}-{formatted_text}")
 
@@ -177,25 +190,33 @@ def write(driverNumber, queue, group_id):
             print(f"Writed: {msg_type}-{path}-{caption}")
 
 def send_message(contact, message):
-    error_counter = 0
     try:
         contact.get_chat().send_message(message)
     except Exception as e:
-        print(f"[{error_counter}] Error trying to send message - {e}")
-        error_counter += 1
-        time.sleep(5)
+        if (is_time_out_error(e)):
+            print(f"Error trying to send message because time out - {e}")
+            internet.wait_until_connection_becames_available()
+        else:
+            print(f"unknown error {e}")
+            pass
+        time.sleep(2)
         #send_message(contact, message)
 
 def send_media(driver, path, chat_id, caption, contact):
-    error_counter = 0
     try:
         driver.send_media(path, chat_id, caption)
     except Exception as e:
-        print(f"[{error_counter}] Error trying to send media -")
-        with open("test.txt", "a") as myfile:
-            myfile.write(str(e) + "\n")
-        error_counter += 1
-        send_message(contact, f"Não foi possível enviar a media do {contact.get_safe_name()}" )
+        print(f"Error trying to send media -")
+        if (is_time_out_error(e)):
+            print(f"Error trying to send message because time out - {e}")
+            internet.wait_until_connection_becames_available()
+        else:
+            print(f"unknown error {e}")
+            pass
+
+        send_message(contact, f"Não foi possível enviar a media do {contact.get_safe_name()}")
+        
+        
         #send_media(driver, path, chat_id, caption,contact)
 
 def init_threads(number, queue_listen, queue_write, group):
