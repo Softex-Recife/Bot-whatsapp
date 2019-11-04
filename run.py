@@ -265,7 +265,7 @@ if __name__ == "__main__":
             quit_bots(["1","2"])
             init_bots()
             print(statusThread)
-            
+
         now = datetime.datetime.now()
         if(now.hour == 17 and now.minute == 39 and config.reset == False):
             time.sleep(40)         
