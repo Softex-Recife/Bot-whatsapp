@@ -40,7 +40,7 @@ class Log:
     def error(self, error_message):
         today = date.today()
         log_file = self.__create_file(today.year, today.month, today.day)
-        logging.basicConfig(format=LOG_FORMAT, filename=log_file)
+        logging.basicConfig(format=LOG_FORMAT, filename=log_file, level=logging.ERROR)
         logging.error(error_message)
-
+    
 Logger = Log()

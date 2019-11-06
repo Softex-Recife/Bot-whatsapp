@@ -10,6 +10,7 @@ import config
 import psutil
 from offline import write_on_backup_file, check_files, load_offline_messages
 import internet
+from log import Logger
 
 
 from WebWhatsapp.webwhatsapi import WhatsAPIDriver
@@ -81,7 +82,8 @@ def text_formatting(group_number, sender, text):
     return f'[{group_number}] *_{sender}_*: {text}'
 
 def save_media(message):
-    message.filename = message.caption
+    if(message.type == "document"):
+        message.filename = message.caption
     file_name = message.filename
     file_path = temp_folder + os.sep + file_name
     message.save_media(temp_folder, force_download=True)
@@ -110,8 +112,8 @@ def listen(driverNumber, queue, group):
         try:
             unread_messages = config.driver[driverNumber].get_unread(use_unread_count=True)
         except TypeError as identifier:
-            print()
             print(f"error to get unread messages {identifier}")
+            Logger.error(f"[listen-{driverNumber}] {identifier}")
             continue
         message_group = list(filter(lambda message: message.chat.name == group, unread_messages))
         if message_group:
@@ -145,8 +147,10 @@ def listen(driverNumber, queue, group):
                 except Exception as e:
                     if (is_time_out_error(e)):
                         print(f"error in send_seen function because time out: {e}")
+                        Logger.error(f"[listen-{driverNumber}] {e}")
                         internet.wait_until_connection_becames_available()
                     else:
+                        Logger.error(f"[listen-{driverNumber}] {e}")
                         print(f"unknown error {e}")
                         pass
                 write_on_backup_file(queue_dict[queue], "listen", msg_type, file_path, formatted_text)
@@ -171,7 +175,7 @@ def write(driverNumber, queue, group_id):
             except Exception as identifier:
                 #config.reset=True
                 print(f"Error in function get_contact_from_id")
-                print(identifier)
+                Logger.error(f"[writer-{driverNumber}] {identifier}")
             if msg_type == "chat":
                 send_message(contact, caption)
             elif msg_type in ['document', 'image' ,'video', 'ptt', 'audio']:           
@@ -197,8 +201,10 @@ def send_message(contact, message):
         if (is_time_out_error(e)):
             print(f"Error trying to send message because time out - {e}")
             internet.wait_until_connection_becames_available()
+            Logger.error(f"Error trying to send message because time out - {e}")
         else:
             print(f"unknown error {e}")
+            Logger.error(f"Error trying to send message - {e}")
             pass
         time.sleep(2)
         #send_message(contact, message)
@@ -209,10 +215,12 @@ def send_media(driver, path, chat_id, caption, contact):
     except Exception as e:
         print(f"Error trying to send media -")
         if (is_time_out_error(e)):
-            print(f"Error trying to send message because time out - {e}")
+            print(f"Error trying to send media because time out - {e}")
+            Logger.error(f"Error trying to send media because time out - {e}")
             internet.wait_until_connection_becames_available()
         else:
             print(f"unknown error {e}")
+            Logger.error(f"Error trying to send media - {e}")
             pass
 
         send_message(contact, f"Não foi possível enviar a media do {contact.get_safe_name()}")
@@ -263,7 +271,7 @@ if __name__ == "__main__":
     while True:
         if(True not in statusThread.values()):
             print("===============resetar ===================")
-            quit_bots(["1","2"])
+            quit_bots(["1","2"])          
             init_bots()
             print(statusThread)
 
