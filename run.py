@@ -81,6 +81,7 @@ def text_formatting(group_number, sender, text):
     return f'[{group_number}] *_{sender}_*: {text}'
 
 def save_media(message):
+    message.filename = message.caption
     file_name = message.filename
     file_path = temp_folder + os.sep + file_name
     message.save_media(temp_folder, force_download=True)
